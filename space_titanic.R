@@ -6,6 +6,7 @@ library(tidyverse)   # Trousse à outils générique
 library(caret)       # Apprentissage machine
 library(DataExplorer)   # Résumé dataset
 library(mice)        # Gestion valeurs manquantes
+memory.limit(size = 50000)
 
 # Télécharger données
 datazip <- tempfile()
@@ -62,12 +63,19 @@ plot_stuff <- function(fct_dataset, fct_criterion){
    }
 }
 
-# Définir fonction : train/fit (en 5-fold cross-validation)
+# Définir fonction : train/fit (en 5x 10-fold cross-validation)
 fit_test <- function(fcn_dataset, fcn_criterion, fcn_factors, fcn_model, fcn_tune){
    tr_ctrl <- trainControl(classProbs = TRUE, method = "repeatedcv", number = 10, repeats = 5)
    cmd <- paste0("train(", fcn_criterion, " ~ ", fcn_factors, ", method = '", fcn_model, "', data = ", fcn_dataset, ", trControl = tr_ctrl, ", fcn_tune,")")
    eval(parse(text = cmd))
 }
+# Définir fonction : FAST train/fit (en 5-fold cross-validation)
+FASTfit_test <- function(fcn_dataset, fcn_criterion, fcn_factors, fcn_model, fcn_tune){
+   tr_ctrl <- trainControl(classProbs = TRUE, method = "cv", number = 5)
+   cmd <- paste0("train(", fcn_criterion, " ~ ", fcn_factors, ", method = '", fcn_model, "', data = ", fcn_dataset, ", trControl = tr_ctrl, ", fcn_tune,")")
+   eval(parse(text = cmd))
+}
+
 
 # Distributions descriptives basiques
 plot_stuff(train_set, "Transported")
@@ -83,7 +91,7 @@ pred_matrix["Name",] <- 0
 pred_matrix[,"Name"] <- 0
 pred_matrix["Transported",] <- 0
 pred_matrix[,"Transported"] <- 0
-mice_input <- mice(train_set, method = "pmm", predictorMatrix = pred_matrix, m = 10)  # Prédiction MICE sur données entrainement (pmm, midastouch, sample, cart, rf)
+mice_input <- mice(train_set, method = "rf", predictorMatrix = pred_matrix, m = 10)  # Prédiction MICE sur données entrainement (pmm, midastouch, sample, cart, rf)
 train_set <- complete(mice_input)                # Remplissage valeurs manquantes
 
 md.pattern(test_set, rotate.names = TRUE)
@@ -97,17 +105,21 @@ pred_matrix[,"Name"] <- 0
 mice_input <- mice(test_set, method = "pmm", predictorMatrix = pred_matrix, m = 10)
 test_set <- complete(mice_input)
 
+# Linear Discriminant Analysis
+fit_lda <- FASTfit_test("train_set", "Transported", ".", "lda", "")
+fit_lda
+
 # Forêt CART
-# fit_rpart <- fit_test("train_set", "Transported", ".", "rpart", "tuneGrid  = data.frame(cp = c(1e-5, 1e-4, 1e-3, 1e-2, 5e-2))")
+fit_rpart <- fit_test("train_set", "Transported", ".", "rpart2", "tuneGrid=data.frame(maxdepth = 2:3)")
 fit_rpart <- fit_test("train_set", "Transported", ".", "rpart", "")
 fit_rpart$results
 plot(fit_rpart$finalModel) + text(fit_rpart$finalModel)
 
 
 # Ranger (forêt aléatoire)
-fit_ranger_mtry <- fit_test("train_set", "Transported", "Sex + Fare + Pclass + Age", "ranger", "tuneGrid  = data.frame(mtry = round(seq(from = 1, to = 10, length.out = 6)), splitrule = 'extratrees', min.node.size = 2), num.trees = 6")
-fit_ranger_splitrule <- fit_test("train_set", "Transported", "Sex + Fare + Pclass + Age", "ranger", "tuneGrid  = data.frame(splitrule = c('gini', 'extratrees'), mtry = 50, min.node.size = 2), num.trees = 6")
-fit_ranger_nodesize <- fit_test("train_set", "Transported", "Sex + Fare + Pclass + Age + SibSp + Parch + Embarked", "ranger", "tuneGrid  = data.frame(min.node.size = round(seq(from = 1, to = 20, length.out = 6)), mtry = 4, splitrule = 'extratrees'), num.trees = 6")
+fit_ranger_mtry <- fit_test("train_set", "Transported", "Age + CryoSleep + VIP + Spending + HomePlanet + Group", "ranger", "tuneGrid  = data.frame(mtry = round(seq(from = 1, to = 10, length.out = 6)), splitrule = 'extratrees', min.node.size = 2), num.trees = 6")
+fit_ranger_splitrule <- fit_test("train_set", "Transported", "Age + CryoSleep + VIP + Spending + HomePlanet + Group", "ranger", "tuneGrid  = data.frame(splitrule = c('gini', 'extratrees'), mtry = 50, min.node.size = 2), num.trees = 6")
+fit_ranger_nodesize <- fit_test("train_set", "Transported", "Age + CryoSleep + VIP + Spending + HomePlanet + Group", "ranger", "tuneGrid  = data.frame(min.node.size = round(seq(from = 1, to = 20, length.out = 6)), mtry = 4, splitrule = 'extratrees'), num.trees = 6")
 fit_ranger <- fit_test("train_set", "Transported", "Age + CryoSleep + VIP + Spending + HomePlanet + Group", "ranger", "num.trees = 5")
 max(fit_ranger$results["Accuracy"])
 fit_ranger$bestTune
