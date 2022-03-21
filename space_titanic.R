@@ -10,8 +10,8 @@ memory.limit(size = 50000)
 
 # Télécharger données
 datazip <- tempfile()
-download.file("https://github.com/EKRihani/space_titanic/raw/main/spaceship_titanic.zip", datazip)
-#datazip <- "~/projects/space_titanic/spaceship_titanic.zip"
+#download.file("https://github.com/EKRihani/space_titanic/raw/main/spaceship_titanic.zip", datazip)
+datazip <- "~/projects/space_titanic/spaceship_titanic.zip"
 train_set <- unzip(datazip, "train.csv")
 train_set <- read.csv(train_set, header = TRUE, sep = ",")
 test_set <- unzip(datazip, "test.csv")
@@ -36,17 +36,23 @@ test_set$CryoSleep <- as.factor(test_set$CryoSleep)
 test_set$Destination <- as.factor(test_set$Destination)
 test_set$VIP <- as.factor(test_set$VIP)
 
-# Extraction de features
-train_set$Cabin1 <- str_split(string = train_set$Cabin, pattern = "/", simplify = TRUE)[,1]
-train_set$Cabin2 <- str_split(string = train_set$Cabin, pattern = "/", simplify = TRUE)[,2]
-train_set$Cabin3 <- str_split(string = train_set$Cabin, pattern = "/", simplify = TRUE)[,3]
-train_set$Group <- str_split(string = train_set$PassengerId, pattern = "_", simplify = TRUE)[,1]
-train_set$Spending <- train_set$RoomService + train_set$FoodCourt + train_set$ShoppingMall + train_set$VRDeck + train_set$Spa
-test_set$Cabin1 <- str_split(string = test_set$Cabin, pattern = "/", simplify = TRUE)[,1]
-test_set$Cabin2 <- str_split(string = test_set$Cabin, pattern = "/", simplify = TRUE)[,2]
-test_set$Cabin3 <- str_split(string = test_set$Cabin, pattern = "/", simplify = TRUE)[,3]
-test_set$Group <- str_split(string = test_set$PassengerId, pattern = "_", simplify = TRUE)[,1]
-test_set$Spending <- test_set$RoomService + test_set$FoodCourt + test_set$ShoppingMall + test_set$VRDeck + test_set$Spa
+# # Extraction de features PRÉ-MICE
+# train_set$Cabin1 <- str_split(string = train_set$Cabin, pattern = "/", simplify = TRUE)[,1]
+# train_set$Cabin2 <- str_split(string = train_set$Cabin, pattern = "/", simplify = TRUE)[,2]
+# train_set$Cabin3 <- str_split(string = train_set$Cabin, pattern = "/", simplify = TRUE)[,3]
+# train_set$Group <- str_split(string = train_set$PassengerId, pattern = "_", simplify = TRUE)[,1]
+# train_set$SpendRSD <- train_set$RoomService + train_set$VRDeck + train_set$Spa
+# train_set$SpendMF <- train_set$FoodCourt + train_set$ShoppingMall
+# train_set$Spending <- train_set$SpendMF + train_set$SpendRSD
+# test_set$Cabin1 <- str_split(string = test_set$Cabin, pattern = "/", simplify = TRUE)[,1]
+# test_set$Cabin2 <- str_split(string = test_set$Cabin, pattern = "/", simplify = TRUE)[,2]
+# test_set$Cabin3 <- str_split(string = test_set$Cabin, pattern = "/", simplify = TRUE)[,3]
+# test_set$Group <- str_split(string = test_set$PassengerId, pattern = "_", simplify = TRUE)[,1]
+# test_set$SpendRSD <- test_set$RoomService + test_set$VRDeck + test_set$Spa
+# test_set$SpendMF <- test_set$FoodCourt + test_set$ShoppingMall
+# test_set$Spending <- test_set$SpendRSD + test_set$SpendMF
+# 
+# create_report(data = train_set, y = "Transported")
 
 # Définir fonction : trace distributions selon le critère principal
 plot_stuff <- function(fct_dataset, fct_criterion){
@@ -105,6 +111,25 @@ pred_matrix[,"Name"] <- 0
 mice_input <- mice(test_set, method = "pmm", predictorMatrix = pred_matrix, m = 10)
 test_set <- complete(mice_input)
 
+# Extraction de features POST-Mice
+train_set$Cabin1 <- str_split(string = train_set$Cabin, pattern = "/", simplify = TRUE)[,1]
+train_set$Cabin2 <- str_split(string = train_set$Cabin, pattern = "/", simplify = TRUE)[,2]
+train_set$Cabin3 <- str_split(string = train_set$Cabin, pattern = "/", simplify = TRUE)[,3]
+train_set$Group <- str_split(string = train_set$PassengerId, pattern = "_", simplify = TRUE)[,1]
+train_set$SpendRSD <- train_set$RoomService + train_set$VRDeck + train_set$Spa
+train_set$SpendMF <- train_set$FoodCourt + train_set$ShoppingMall
+train_set$Spending <- train_set$SpendMF + train_set$SpendRSD
+test_set$Cabin1 <- str_split(string = test_set$Cabin, pattern = "/", simplify = TRUE)[,1]
+test_set$Cabin2 <- str_split(string = test_set$Cabin, pattern = "/", simplify = TRUE)[,2]
+test_set$Cabin3 <- str_split(string = test_set$Cabin, pattern = "/", simplify = TRUE)[,3]
+test_set$Group <- str_split(string = test_set$PassengerId, pattern = "_", simplify = TRUE)[,1]
+test_set$SpendRSD <- test_set$RoomService + test_set$VRDeck + test_set$Spa
+test_set$SpendMF <- test_set$FoodCourt + test_set$ShoppingMall
+test_set$Spending <- test_set$SpendRSD + test_set$SpendMF
+
+create_report(data = train_set, y = "Transported")
+
+
 # Linear Discriminant Analysis
 fit_lda <- FASTfit_test("train_set", "Transported", ".", "lda", "")
 fit_lda
@@ -118,9 +143,9 @@ plot(fit_rpart$finalModel) + text(fit_rpart$finalModel)
 
 # Ranger (forêt aléatoire)
 fit_ranger_mtry <- fit_test("train_set", "Transported", "Age + CryoSleep + VIP + Spending + HomePlanet + Group", "ranger", "tuneGrid  = data.frame(mtry = round(seq(from = 1, to = 10, length.out = 6)), splitrule = 'extratrees', min.node.size = 2), num.trees = 6")
-fit_ranger_splitrule <- fit_test("train_set", "Transported", "Age + CryoSleep + VIP + Spending + HomePlanet + Group", "ranger", "tuneGrid  = data.frame(splitrule = c('gini', 'extratrees'), mtry = 50, min.node.size = 2), num.trees = 6")
+fit_ranger_splitrule <- fit_test("train_set", "Transported", "Age + CryoSleep + VIP + Spending +Cabin + HomePlanet + Group", "ranger", "tuneGrid  = data.frame(splitrule = c('gini', 'extratrees'), mtry = 50, min.node.size = 2), num.trees = 6")
 fit_ranger_nodesize <- fit_test("train_set", "Transported", "Age + CryoSleep + VIP + Spending + HomePlanet + Group", "ranger", "tuneGrid  = data.frame(min.node.size = round(seq(from = 1, to = 20, length.out = 6)), mtry = 4, splitrule = 'extratrees'), num.trees = 6")
-fit_ranger <- fit_test("train_set", "Transported", "Age + CryoSleep + VIP + Spending + HomePlanet + Group", "ranger", "num.trees = 5")
+fit_ranger <- FASTfit_test("train_set", "Transported", "Age + CryoSleep + VIP + SpendRSD + SpendMF + HomePlanet + Group + Cabin1 + Cabin3", "ranger", "num.trees = 3")
 max(fit_ranger$results["Accuracy"])
 fit_ranger$bestTune
 
