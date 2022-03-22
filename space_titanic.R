@@ -145,7 +145,7 @@ plot(fit_rpart$finalModel) + text(fit_rpart$finalModel)
 fit_ranger_mtry <- fit_test("train_set", "Transported", "Age + CryoSleep + VIP + Spending + HomePlanet + Group", "ranger", "tuneGrid  = data.frame(mtry = round(seq(from = 1, to = 10, length.out = 6)), splitrule = 'extratrees', min.node.size = 2), num.trees = 6")
 fit_ranger_splitrule <- fit_test("train_set", "Transported", "Age + CryoSleep + VIP + Spending +Cabin + HomePlanet + Group", "ranger", "tuneGrid  = data.frame(splitrule = c('gini', 'extratrees'), mtry = 50, min.node.size = 2), num.trees = 6")
 fit_ranger_nodesize <- fit_test("train_set", "Transported", "Age + CryoSleep + VIP + Spending + HomePlanet + Group", "ranger", "tuneGrid  = data.frame(min.node.size = round(seq(from = 1, to = 20, length.out = 6)), mtry = 4, splitrule = 'extratrees'), num.trees = 6")
-fit_ranger <- FASTfit_test("train_set", "Transported", "Age + CryoSleep + VIP + SpendRSD + SpendMF + HomePlanet + Group + Cabin1 + Cabin3", "ranger", "num.trees = 3")
+fit_ranger <- FASTfit_test("train_set", "Transported", "Age + CryoSleep + VIP + SpendRSD + HomePlanet + Group + Cabin1 + Cabin3", "ranger", "num.trees = 3")
 max(fit_ranger$results["Accuracy"])
 fit_ranger$bestTune
 
@@ -165,18 +165,21 @@ max(fit_gamLoess$results["Accuracy"])
 # Xtreme Gradient Boosting
 fit_xgbLinear <- fit_test("train_set", "Transported", "Sex + Fare + Pclass + Age", "xgbLinear", "")
 max(fit_xgbLinear$results["Accuracy"])
-fit_xgbTree <- fit_test("train_set", "Transported", "Age + CryoSleep + VIP + Spending + HomePlanet", "xgbTree", "")
+fit_xgbTree <- fit_test("train_set", "Transported", "Age + CryoSleep + VIP + SpendRSD + HomePlanet", "xgbTree", "")
 max(fit_xgbTree$results["Accuracy"])
 fit_xgbTree$bestTune
-fit_xgbDART <- fit_test("train_set", "Transported", "Age + CryoSleep + VIP + Spending + HomePlanet", "xgbDART", "")
+fit_xgbDART <- fit_test("train_set", "Transported", "Age + CryoSleep + VIP + SpendRSD + HomePlanet", "xgbDART", "")
 max(fit_xgbDART$results["Accuracy"])
 fit_xgbDART$bestTune
 
 # Prediction finale
-fit <- train(Transported ~ Age + CryoSleep + VIP + Spending + HomePlanet, method = "xgbTree", data = train_set, 
-             tuneGrid  = data.frame(nrounds=50, max_depth=3, eta=.4, gamma=0, colsample_bytree=.8, min_child_weight=1, subsample=1))
+fit <- train(Transported ~ Age + CryoSleep + VIP + SpendRSD + HomePlanet, method = "xgbTree", data = train_set, 
+             tuneGrid  = data.frame(nrounds=100, max_depth=2, eta=.3, gamma=0, colsample_bytree=.6, min_child_weight=1, subsample=1))
+fit <- train(Transported ~ Age + CryoSleep + VIP + SpendRSD + HomePlanet + Cabin1 + Cabin3, method = "ranger", data = train_set, 
+             tuneGrid  = data.frame(mtry=15, splitrule="extratrees", min.node.size=1), num.trees = 6)
 RESULT <- NULL
 RESULT$PassengerId <- test_set$PassengerId
 RESULT$Transported <- predict(object = fit, newdata = test_set)
 RESULT <- as.data.frame(RESULT)
 write.csv(RESULT, "result.csv", row.names = FALSE)
+
