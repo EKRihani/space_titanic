@@ -173,8 +173,8 @@ max(fit_xgbDART$results["Accuracy"])
 fit_xgbDART$bestTune
 
 # Prediction finale
-fit <- train(Transported ~ Age + CryoSleep + VIP + SpendRSD + HomePlanet, method = "xgbTree", data = train_set, 
-             tuneGrid  = data.frame(nrounds=100, max_depth=2, eta=.3, gamma=0, colsample_bytree=.6, min_child_weight=1, subsample=1))
+fit <- train(Transported ~ Age + CryoSleep + VIP + SpendRSD + HomePlanet, method = "xgbDART", data = train_set, 
+             tuneGrid  = data.frame(nrounds=100, max_depth=2, eta=.3, gamma=0, subsample=1, colsample_bytree=.6, rate_drop = .5, skip_drop=.95, min_child_weight=1))
 fit <- train(Transported ~ Age + CryoSleep + VIP + SpendRSD + HomePlanet + Cabin1 + Cabin3, method = "ranger", data = train_set, 
              tuneGrid  = data.frame(mtry=15, splitrule="extratrees", min.node.size=1), num.trees = 6)
 RESULT <- NULL
