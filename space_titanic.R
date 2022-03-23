@@ -153,8 +153,12 @@ train_set[1:100,] %>%
    geom_bar(position = "fill")
 
 # KNN
-fit_knn <- FASTfit_test("train_set", "Transported", "Age + CryoSleep + HomePlanet + VIP + SpendRSD + SpendMF + Cabin3 + Destination", "knn", "tuneGrid=data.frame(k = seq(from=9, to=30, by=3))")
-fit_knn
+fit_kknn_kmax <- fit_test("train_set", "Transported", "Age + CryoSleep + HomePlanet + VIP + SpendRSD + SpendMF + Cabin3 + Destination", "kknn", "tuneGrid  = data.frame(kmax = round(seq(from = 10, to = 100, length.out = 15)), distance= 2, kernel = 'optimal')")
+fit_kknn_distance <- FASTfit_test("train_set", "Transported", "Age + CryoSleep + HomePlanet + VIP + SpendRSD + SpendMF + Cabin3 + Destination", "kknn", "tuneGrid  = data.frame(kmax = 9, distance= 1:6, kernel = 'optimal')")
+fit_kknn_kernel <- FASTfit_test("train_set", "Transported", "Age + CryoSleep + HomePlanet + VIP + SpendRSD + SpendMF + Cabin3 + Destination", "kknn", "tuneGrid  = data.frame(kmax = 80, distance=1, kernel = c('triangular', 'epanechnikov', 'biweight', 'triweight', 'gaussian', 'cos', 'inv','rank', 'optimal'))")
+fit_kknn_kmax
+fit_kknn_distance
+fit_kknn_kernel
 
 # Linear Discriminant Analysis
 fit_lda <- fit_test("train_set", "Transported", ".", "lda", "")
@@ -203,6 +207,12 @@ fit <- train(Transported ~ Age + CryoSleep + VIP + SpendRSD + HomePlanet + Cabin
              tuneGrid  = data.frame(nrounds=100, max_depth=2, eta=.3, gamma=0, subsample=1, colsample_bytree=.6, rate_drop = .5, skip_drop=.95, min_child_weight=1))
 fit <- train(Transported ~ Age + CryoSleep + VIP + SpendRSD + HomePlanet + Cabin1 + Cabin3 + Destination, method = "ranger", data = train_set, 
              tuneGrid  = data.frame(mtry=15, splitrule="extratrees", min.node.size=1), num.trees = 6)
+fit <- train(Transported ~ Age + CryoSleep + HomePlanet + VIP + SpendRSD + SpendMF + Cabin3 + Destination, method = "knn", data = train_set, 
+             tuneGrid  = data.frame(k=30))
+fit <- train(Transported ~ Age + CryoSleep + HomePlanet + VIP + SpendRSD + SpendMF + Cabin3 + Destination, method = "kknn", data = train_set, 
+             tuneGrid  = data.frame(kmax = 50, distance=2, kernel = "optimal"))
+
+
 RESULT <- NULL
 RESULT$PassengerId <- test_set$PassengerId
 RESULT$Transported <- predict(object = fit, newdata = test_set)
