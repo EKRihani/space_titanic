@@ -6,6 +6,7 @@ library(tidyverse)   # Trousse à outils générique
 library(caret)       # Apprentissage machine
 library(DataExplorer)   # Résumé dataset
 library(mice)        # Gestion valeurs manquantes
+library (GGally)     # Dual plots
 memory.limit(size = 50000)
 
 # Télécharger données
@@ -17,8 +18,8 @@ train_set <- read.csv(train_set, header = TRUE, sep = ",")
 test_set <- unzip(datazip, "test.csv")
 test_set <- read.csv(test_set, header = TRUE, sep = ",")
 # OSEF
-result_set <- unzip(datazip, "sample_submission.csv")
-result_set <- read.csv(result_set, header = TRUE, sep = ",")
+# result_set <- unzip(datazip, "sample_submission.csv")
+# result_set <- read.csv(result_set, header = TRUE, sep = ",")
 
 # Introduction dataset
 head(train_set)
@@ -82,7 +83,6 @@ FASTfit_test <- function(fcn_dataset, fcn_criterion, fcn_factors, fcn_model, fcn
    eval(parse(text = cmd))
 }
 
-
 # Distributions descriptives basiques
 plot_stuff(train_set, "Transported")
 
@@ -116,6 +116,7 @@ train_set$Cabin1 <- str_split(string = train_set$Cabin, pattern = "/", simplify 
 train_set$Cabin2 <- str_split(string = train_set$Cabin, pattern = "/", simplify = TRUE)[,2]
 train_set$Cabin3 <- str_split(string = train_set$Cabin, pattern = "/", simplify = TRUE)[,3]
 train_set$Group <- str_split(string = train_set$PassengerId, pattern = "_", simplify = TRUE)[,1]
+train_set$Grp <- floor(as.numeric(train_set$Group)/10)
 train_set$SpendRSD <- train_set$RoomService + train_set$VRDeck + train_set$Spa
 train_set$SpendMF <- train_set$FoodCourt + train_set$ShoppingMall
 train_set$Spending <- train_set$SpendMF + train_set$SpendRSD
@@ -123,12 +124,29 @@ test_set$Cabin1 <- str_split(string = test_set$Cabin, pattern = "/", simplify = 
 test_set$Cabin2 <- str_split(string = test_set$Cabin, pattern = "/", simplify = TRUE)[,2]
 test_set$Cabin3 <- str_split(string = test_set$Cabin, pattern = "/", simplify = TRUE)[,3]
 test_set$Group <- str_split(string = test_set$PassengerId, pattern = "_", simplify = TRUE)[,1]
+test_set$Grp <- floor(as.numeric(test_set$Group)/10)
 test_set$SpendRSD <- test_set$RoomService + test_set$VRDeck + test_set$Spa
 test_set$SpendMF <- test_set$FoodCourt + test_set$ShoppingMall
 test_set$Spending <- test_set$SpendRSD + test_set$SpendMF
 
 create_report(data = train_set, y = "Transported")
 
+plot_stuff(train_set, "Transported")
+
+pair_plots <- ggpairs(
+   train_set,
+   columns = c(6,7,8,9,10),
+   lower = NULL,
+   diag = list(continuous = wrap("densityDiag", alpha = .6), 
+               discrete = wrap("barDiag")
+   ),
+   upper = list(continuous = wrap("points", alpha = .3, shape = 20), 
+                combo = wrap("dot", alpha = .3, shape = 20),
+                discrete = wrap("dot_no_facet", alpha = .3, shape = 20)
+   ),
+   ggplot2::aes(color = Transported)
+)
+pair_plots
 
 # Linear Discriminant Analysis
 fit_lda <- FASTfit_test("train_set", "Transported", ".", "lda", "")
