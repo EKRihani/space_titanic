@@ -116,7 +116,7 @@ train_set$Cabin1 <- str_split(string = train_set$Cabin, pattern = "/", simplify 
 train_set$Cabin2 <- str_split(string = train_set$Cabin, pattern = "/", simplify = TRUE)[,2]
 train_set$Cabin3 <- str_split(string = train_set$Cabin, pattern = "/", simplify = TRUE)[,3]
 train_set$Group <- str_split(string = train_set$PassengerId, pattern = "_", simplify = TRUE)[,1]
-train_set$Grp <- floor(as.numeric(train_set$Group)/10)
+train_set$Grp <- floor(as.numeric(train_set$Group)/8)
 train_set$SpendRSD <- train_set$RoomService + train_set$VRDeck + train_set$Spa
 train_set$SpendMF <- train_set$FoodCourt + train_set$ShoppingMall
 train_set$Spending <- train_set$SpendMF + train_set$SpendRSD
@@ -124,7 +124,7 @@ test_set$Cabin1 <- str_split(string = test_set$Cabin, pattern = "/", simplify = 
 test_set$Cabin2 <- str_split(string = test_set$Cabin, pattern = "/", simplify = TRUE)[,2]
 test_set$Cabin3 <- str_split(string = test_set$Cabin, pattern = "/", simplify = TRUE)[,3]
 test_set$Group <- str_split(string = test_set$PassengerId, pattern = "_", simplify = TRUE)[,1]
-test_set$Grp <- floor(as.numeric(test_set$Group)/10)
+test_set$Grp <- floor(as.numeric(test_set$Group)/8)
 test_set$SpendRSD <- test_set$RoomService + test_set$VRDeck + test_set$Spa
 test_set$SpendMF <- test_set$FoodCourt + test_set$ShoppingMall
 test_set$Spending <- test_set$SpendRSD + test_set$SpendMF
@@ -148,8 +148,16 @@ pair_plots <- ggpairs(
 )
 pair_plots
 
+train_set[1:100,] %>%
+   ggplot(aes(x = Group, fill = Transported)) +
+   geom_bar(position = "fill")
+
+# KNN
+fit_knn <- FASTfit_test("train_set", "Transported", "Age + CryoSleep + HomePlanet + VIP + SpendRSD + SpendMF + Cabin3 + Destination", "knn", "tuneGrid=data.frame(k = seq(from=9, to=30, by=3))")
+fit_knn
+
 # Linear Discriminant Analysis
-fit_lda <- FASTfit_test("train_set", "Transported", ".", "lda", "")
+fit_lda <- fit_test("train_set", "Transported", ".", "lda", "")
 fit_lda
 
 # Forêt CART
@@ -183,17 +191,17 @@ max(fit_gamLoess$results["Accuracy"])
 # Xtreme Gradient Boosting
 fit_xgbLinear <- fit_test("train_set", "Transported", "Sex + Fare + Pclass + Age", "xgbLinear", "")
 max(fit_xgbLinear$results["Accuracy"])
-fit_xgbTree <- fit_test("train_set", "Transported", "Age + CryoSleep + VIP + SpendRSD + HomePlanet", "xgbTree", "")
+fit_xgbTree <- fit_test("train_set", "Transported", "Age + CryoSleep + VIP + SpendRSD + HomePlanet + Cabin1 + Cabin3 + Destination", "xgbTree", "")
 max(fit_xgbTree$results["Accuracy"])
 fit_xgbTree$bestTune
-fit_xgbDART <- fit_test("train_set", "Transported", "Age + CryoSleep + VIP + SpendRSD + HomePlanet", "xgbDART", "")
+fit_xgbDART <- fit_test("train_set", "Transported", "Age + CryoSleep + VIP + SpendRSD + HomePlanet + Cabin1 + Cabin3 + Destination", "xgbDART", "")
 max(fit_xgbDART$results["Accuracy"])
 fit_xgbDART$bestTune
 
 # Prediction finale
-fit <- train(Transported ~ Age + CryoSleep + VIP + SpendRSD + HomePlanet, method = "xgbDART", data = train_set, 
+fit <- train(Transported ~ Age + CryoSleep + VIP + SpendRSD + HomePlanet + Cabin1 + Cabin3 + Destination, method = "xgbDART", data = train_set, 
              tuneGrid  = data.frame(nrounds=100, max_depth=2, eta=.3, gamma=0, subsample=1, colsample_bytree=.6, rate_drop = .5, skip_drop=.95, min_child_weight=1))
-fit <- train(Transported ~ Age + CryoSleep + VIP + SpendRSD + HomePlanet + Cabin1 + Cabin3, method = "ranger", data = train_set, 
+fit <- train(Transported ~ Age + CryoSleep + VIP + SpendRSD + HomePlanet + Cabin1 + Cabin3 + Destination, method = "ranger", data = train_set, 
              tuneGrid  = data.frame(mtry=15, splitrule="extratrees", min.node.size=1), num.trees = 6)
 RESULT <- NULL
 RESULT$PassengerId <- test_set$PassengerId
