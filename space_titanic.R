@@ -97,7 +97,7 @@ pred_matrix["Name",] <- 0
 pred_matrix[,"Name"] <- 0
 pred_matrix["Transported",] <- 0
 pred_matrix[,"Transported"] <- 0
-mice_input <- mice(train_set, method = "rf", predictorMatrix = pred_matrix, m = 10)  # Prédiction MICE sur données entrainement (pmm, midastouch, sample, cart, rf)
+mice_input <- mice(train_set, method = "midastouch", predictorMatrix = pred_matrix, m = 10)  # Prédiction MICE sur données entrainement (pmm, midastouch, sample, cart, rf)
 train_set <- complete(mice_input)                # Remplissage valeurs manquantes
 
 md.pattern(test_set, rotate.names = TRUE)
@@ -108,7 +108,7 @@ pred_matrix["Cabin",] <- 0
 pred_matrix[,"Cabin"] <- 0
 pred_matrix["Name",] <- 0
 pred_matrix[,"Name"] <- 0
-mice_input <- mice(test_set, method = "pmm", predictorMatrix = pred_matrix, m = 10)
+mice_input <- mice(test_set, method = "midastouch", predictorMatrix = pred_matrix, m = 10)
 test_set <- complete(mice_input)
 
 # Extraction de features POST-Mice
@@ -153,7 +153,7 @@ train_set[1:100,] %>%
    geom_bar(position = "fill")
 
 # KNN
-fit_kknn_kmax <- fit_test("train_set", "Transported", "Age + CryoSleep + HomePlanet + VIP + SpendRSD + SpendMF + Cabin3 + Destination", "kknn", "tuneGrid  = data.frame(kmax = round(seq(from = 10, to = 100, length.out = 15)), distance= 2, kernel = 'optimal')")
+fit_kknn_kmax <- FASTfit_test("train_set", "Transported", "Age + CryoSleep + HomePlanet + VIP + SpendRSD + SpendMF + Cabin3 + Destination", "kknn", "tuneGrid  = data.frame(kmax = round(seq(from = 10, to = 100, length.out = 15)), distance= 2, kernel = 'optimal')")
 fit_kknn_distance <- FASTfit_test("train_set", "Transported", "Age + CryoSleep + HomePlanet + VIP + SpendRSD + SpendMF + Cabin3 + Destination", "kknn", "tuneGrid  = data.frame(kmax = 9, distance= 1:6, kernel = 'optimal')")
 fit_kknn_kernel <- FASTfit_test("train_set", "Transported", "Age + CryoSleep + HomePlanet + VIP + SpendRSD + SpendMF + Cabin3 + Destination", "kknn", "tuneGrid  = data.frame(kmax = 80, distance=1, kernel = c('triangular', 'epanechnikov', 'biweight', 'triweight', 'gaussian', 'cos', 'inv','rank', 'optimal'))")
 fit_kknn_kmax
@@ -210,7 +210,7 @@ fit <- train(Transported ~ Age + CryoSleep + VIP + SpendRSD + HomePlanet + Cabin
 fit <- train(Transported ~ Age + CryoSleep + HomePlanet + VIP + SpendRSD + SpendMF + Cabin3 + Destination, method = "knn", data = train_set, 
              tuneGrid  = data.frame(k=30))
 fit <- train(Transported ~ Age + CryoSleep + HomePlanet + VIP + SpendRSD + SpendMF + Cabin3 + Destination, method = "kknn", data = train_set, 
-             tuneGrid  = data.frame(kmax = 50, distance=2, kernel = "optimal"))
+             tuneGrid  = data.frame(kmax = 60, distance=1, kernel = "inv"))
 
 
 RESULT <- NULL
