@@ -97,7 +97,7 @@ pred_matrix["Name",] <- 0
 pred_matrix[,"Name"] <- 0
 pred_matrix["Transported",] <- 0
 pred_matrix[,"Transported"] <- 0
-mice_input <- mice(train_set, method = "midastouch", predictorMatrix = pred_matrix, m = 10)  # Prédiction MICE sur données entrainement (pmm, midastouch, sample, cart, rf)
+mice_input <- mice(train_set, method = "cart", predictorMatrix = pred_matrix, m = 10)  # Prédiction MICE sur données entrainement (pmm, midastouch, sample, cart, rf)
 train_set <- complete(mice_input)                # Remplissage valeurs manquantes
 
 md.pattern(test_set, rotate.names = TRUE)
@@ -108,7 +108,7 @@ pred_matrix["Cabin",] <- 0
 pred_matrix[,"Cabin"] <- 0
 pred_matrix["Name",] <- 0
 pred_matrix[,"Name"] <- 0
-mice_input <- mice(test_set, method = "midastouch", predictorMatrix = pred_matrix, m = 10)
+mice_input <- mice(test_set, method = "cart", predictorMatrix = pred_matrix, m = 10)
 test_set <- complete(mice_input)
 
 # Extraction de features POST-Mice
@@ -136,7 +136,10 @@ plot_stuff(train_set, "Transported")
 pair_plots <- ggpairs(
    train_set,
    columns = c(6,7,8,9,10),
-   lower = NULL,
+   lower = list(continuous = wrap("smooth", alpha = .3, shape = 20), 
+                combo = wrap("denstrip", alpha = .3, shape = 20),
+                discrete = wrap("facetbar", alpha = .3, shape = 20)
+   ),
    diag = list(continuous = wrap("densityDiag", alpha = .6), 
                discrete = wrap("barDiag")
    ),
